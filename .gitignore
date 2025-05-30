@@ -1,0 +1,26 @@
+backend/credentials.json
+
+# Python
+*.pyc
+__pycache__/
+.env
+.env.*
+*.sqlite3
+
+# FastAPI/MongoDB
+app/db/mongodb.py
+app/core/auth.py
+
+# Docker
+*.env
+docker-compose.override.yml
+
+# Node/React
+node_modules/
+build/
+.env.local
+.env.development
+.env.production
+
+# System
+.DS_Store
