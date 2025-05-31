@@ -8,9 +8,8 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongo:27017
       - DATABASE_NAME=image_moderation
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-    volumes:
-      - ./backend/credentials.json:/app/credentials.json
+      - SIGHTENGINE_API_USER=86502181
+      - SIGHTENGINE_API_SECRET=DFqvSFjWzDx3gGcBUaYCCf8KxEh3JyLt
     depends_on:
       - mongo
     networks:

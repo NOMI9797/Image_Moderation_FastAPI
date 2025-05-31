@@ -1,19 +1,28 @@
 from fastapi import UploadFile, HTTPException
 import magic
-from google.cloud import vision
+import requests
+import json
 import os
 from typing import Dict, List, Tuple
+from dotenv import load_dotenv
 
-# Initialize the Vision API client
-client = vision.ImageAnnotatorClient()
+load_dotenv()
+
+# SightEngine API credentials
+API_USER = os.getenv("SIGHTENGINE_API_USER", "86502181")
+API_SECRET = os.getenv("SIGHTENGINE_API_SECRET", "DFqvSFjWzDx3gGcBUaYCCf8KxEh3JyLt")
 
 # Define content categories and their thresholds
 CONTENT_CATEGORIES = {
-    'adult': 0.5,  # Explicit nudity
-    'violence': 0.5,  # Graphic violence
-    'medical': 0.5,  # Medical conditions
-    'spoof': 0.5,  # Spoofed content
-    'racy': 0.5,  # Suggestive content
+    'nudity': 0.5,     # Nudity detection
+    'violence': 0.5,   # Violence
+    'weapon': 0.5,     # Weapons
+    'alcohol': 0.5,    # Alcohol 
+    'drugs': 0.5,      # Recreational drugs
+    'offensive': 0.5,  # Offensive content (nazi, etc.)
+    'gore': 0.5,       # Gore content
+    'tobacco': 0.5,    # Tobacco
+    'self-harm': 0.5,  # Self-harm content
 }
 
 async def moderate_image(file: UploadFile) -> dict:
@@ -31,41 +40,86 @@ async def moderate_image(file: UploadFile) -> dict:
                 "details": {"error": "Invalid file type"}
             }
 
-        # Create Vision API image object
-        image = vision.Image(content=content)
+        # Create a temporary file to send to SightEngine API
+        temp_file_path = f"/tmp/{file.filename}"
+        with open(temp_file_path, "wb") as temp_file:
+            temp_file.write(content)
         
-        # Perform safe search detection
-        safe_search = client.safe_search_detection(image=image).safe_search_annotation
-        
-        # Check for explicit content
-        content_checks = {
-            'adult': safe_search.adult,
-            'violence': safe_search.violence,
-            'medical': safe_search.medical,
-            'spoof': safe_search.spoof,
-            'racy': safe_search.racy
+        # Set up parameters for SightEngine API
+        params = {
+            'models': 'nudity-2.1,weapon,alcohol,recreational_drug,medical,offensive-2.0,gore-2.0,tobacco,violence,self-harm',
+            'api_user': API_USER,
+            'api_secret': API_SECRET
         }
         
-        # Check for text in image (OCR)
-        text_detection = client.text_detection(image=image).text_annotations
-        detected_text = text_detection[0].description if text_detection else ""
+        # Send request to SightEngine API
+        files = {'media': open(temp_file_path, 'rb')}
+        response = requests.post('https://api.sightengine.com/1.0/check.json', files=files, data=params)
         
-        # Check for objects and labels
-        objects = client.object_localization(image=image).localized_object_annotations
-        labels = client.label_detection(image=image).label_annotations
+        # Close and remove temporary file
+        files['media'].close()
+        os.remove(temp_file_path)
         
-        # Analyze content
+        # Parse the API response
+        sightengine_result = json.loads(response.text)
+        
+        if sightengine_result.get('status') != 'success':
+            return {
+                "is_safe": False,
+                "message": "Error analyzing image",
+                "details": {"error": sightengine_result.get('error', {}).get('message', 'Unknown error')}
+            }
+        
+        # Analyze content for violations
         violations = []
-        for category, threshold in CONTENT_CATEGORIES.items():
-            if getattr(safe_search, category).value > threshold:
-                violations.append(category)
         
-        # Check for hate symbols or extremist content in text
-        hate_keywords = ['hate', 'extremist', 'terrorist', 'nazi', 'racist']
-        text_violations = [word for word in hate_keywords if word in detected_text.lower()]
+        # Check nudity violations
+        if sightengine_result.get('nudity'):
+            nudity_data = sightengine_result['nudity']
+            if (nudity_data.get('sexual_activity', 0) > CONTENT_CATEGORIES['nudity'] or
+                nudity_data.get('sexual_display', 0) > CONTENT_CATEGORIES['nudity'] or
+                nudity_data.get('erotica', 0) > CONTENT_CATEGORIES['nudity'] or
+                nudity_data.get('suggestive', 0) > CONTENT_CATEGORIES['nudity']):
+                violations.append('nudity')
         
-        if text_violations:
-            violations.append('hate_speech')
+        # Check weapon violations
+        if sightengine_result.get('weapon'):
+            weapon_data = sightengine_result['weapon']['classes']
+            if (weapon_data.get('firearm', 0) > CONTENT_CATEGORIES['weapon'] or
+                weapon_data.get('knife', 0) > CONTENT_CATEGORIES['weapon']):
+                violations.append('weapon')
+        
+        # Check alcohol violations
+        if sightengine_result.get('alcohol', {}).get('prob', 0) > CONTENT_CATEGORIES['alcohol']:
+            violations.append('alcohol')
+        
+        # Check drug violations
+        if sightengine_result.get('recreational_drug', {}).get('prob', 0) > CONTENT_CATEGORIES['drugs']:
+            violations.append('drugs')
+        
+        # Check offensive content violations
+        if sightengine_result.get('offensive'):
+            offensive_data = sightengine_result['offensive']
+            if (offensive_data.get('nazi', 0) > CONTENT_CATEGORIES['offensive'] or
+                offensive_data.get('supremacist', 0) > CONTENT_CATEGORIES['offensive'] or
+                offensive_data.get('terrorist', 0) > CONTENT_CATEGORIES['offensive']):
+                violations.append('offensive')
+        
+        # Check gore violations
+        if sightengine_result.get('gore', {}).get('prob', 0) > CONTENT_CATEGORIES['gore']:
+            violations.append('gore')
+        
+        # Check tobacco violations
+        if sightengine_result.get('tobacco', {}).get('prob', 0) > CONTENT_CATEGORIES['tobacco']:
+            violations.append('tobacco')
+        
+        # Check violence violations
+        if sightengine_result.get('violence', {}).get('prob', 0) > CONTENT_CATEGORIES['violence']:
+            violations.append('violence')
+        
+        # Check self-harm violations
+        if sightengine_result.get('self-harm', {}).get('prob', 0) > CONTENT_CATEGORIES['self-harm']:
+            violations.append('self-harm')
         
         # Determine if image is safe
         is_safe = len(violations) == 0
@@ -76,13 +130,7 @@ async def moderate_image(file: UploadFile) -> dict:
             "message": "Image is safe" if is_safe else "Image contains inappropriate content",
             "details": {
                 "violations": violations,
-                "content_analysis": {
-                    category: getattr(safe_search, category).name
-                    for category in CONTENT_CATEGORIES.keys()
-                },
-                "detected_text": detected_text if detected_text else None,
-                "detected_objects": [obj.name for obj in objects],
-                "detected_labels": [label.description for label in labels]
+                "content_analysis": sightengine_result,
             }
         }
         

@@ -1,21 +1,116 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
+import {
+  Box, 
+  Typography, 
+  Button, 
+  TextField, 
+  FormControlLabel, 
+  Checkbox, 
+  Container, 
+  Grid, 
+  Paper, 
+  IconButton, 
+  Tabs, 
+  Tab, 
+  Alert, 
+  Snackbar, 
+  Tooltip,
+  Chip
+} from '@mui/material';
+import {
+  CloudUpload, 
+  Security, 
+  VpnKey, 
+  CheckCircle, 
+  ErrorOutline, 
+  ContentCopy, 
+  Upload, 
+  Delete
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:7001';
 
+// Helper to determine progress bar color
+const getProgressColor = (value) => {
+  if (value < 0.4) return "low";
+  if (value < 0.7) return "medium";
+  return "high";
+};
+
+// Format categories for visualization
+const formatDataForChart = (data, category) => {
+  if (!data || !data[category]) return [];
+  
+  const categories = data[category];
+  
+  if (typeof categories === 'object') {
+    return Object.entries(categories)
+      .filter(([key, value]) => typeof value === 'number')  
+      .map(([key, value]) => ({ name: key, value: parseFloat(value.toFixed(3)) }))
+      .sort((a, b) => b.value - a.value) // Sort by value descending
+      .slice(0, 10); // Take top 10 for readability
+  }
+  
+  return [];
+};
+
 function App() {
   const [token, setToken] = useState('');
   const [file, setFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [newToken, setNewToken] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const fileInputRef = useRef(null);
 
   const handleTokenChange = (e) => setToken(e.target.value);
-  const handleFileChange = (e) => setFile(e.target.files[0]);
+  
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      
+      // Create image preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+  
+  const handleFileDelete = () => {
+    setFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
   const handleIsAdminChange = (e) => setIsAdmin(e.target.checked);
+  
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+  
+  const copyToken = () => {
+    navigator.clipboard.writeText(newToken);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
+  };
+  
+  const useCurrentToken = () => {
+    setToken(newToken);
+    setNewToken('');
+  };
 
   const createToken = async () => {
     try {
@@ -24,9 +119,9 @@ function App() {
       });
       setNewToken(response.data.token);
       setError(null);
-    } catch (error) {
-      console.error('Error creating token:', error);
-      setError(error.response?.data?.detail || 'Error creating token');
+    } catch (err) {
+      console.error('Error creating token:', err);
+      setError(err.response?.data?.detail || 'Error creating token');
     }
   };
 
@@ -54,76 +149,489 @@ function App() {
       });
       setResult(response.data);
       setError(null);
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error.response?.data?.detail || 'Error uploading image');
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err.response?.data?.detail || 'Error uploading image');
       setResult(null);
     }
   };
 
   return (
     <div className="App">
-      <div className="card">
-        <h1>Image Moderation</h1>
-        
-        {/* Token Creation Section */}
-        <div className="token-creation">
-          <h2>Create New Token</h2>
-          <div className="checkbox-group">
-            <input
-              type="checkbox"
-              id="isAdmin"
-              checked={isAdmin}
-              onChange={handleIsAdminChange}
-            />
-            <label htmlFor="isAdmin">Admin Token</label>
-          </div>
-          <button onClick={createToken}>Create Token</button>
-          {newToken && (
-            <div className="new-token">
-              <p>New Token: <code>{newToken}</code></p>
-              <button onClick={() => {
-                setToken(newToken);
-                setNewToken('');
-              }}>Use This Token</button>
-            </div>
-          )}
-        </div>
+      <Container maxWidth="lg" className="app-container">
+        <motion.div 
+          className="app-header"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Typography variant="h1" component="h1">Image Moderation</Typography>
+          <Typography variant="subtitle1">
+            Upload images to analyze content safety using advanced AI detection
+          </Typography>
+        </motion.div>
 
-        {/* Image Upload Section */}
-        <div className="upload-section">
-          <h2>Upload Image</h2>
-          <input
-            type="text"
-            placeholder="Enter your token"
-            value={token}
-            onChange={handleTokenChange}
-          />
-          <input
-            type="file"
-            onChange={handleFileChange}
-          />
-          <button onClick={handleSubmit}>Upload and Moderate</button>
-        </div>
-
-        {error && <div className="error">{error}</div>}
-        
-        <div className="result">
-          <h2>Result:</h2>
-          {result && (
-            <div>
-              <p>Status: {result.is_safe ? 'Safe' : 'Unsafe'}</p>
-              <p>Message: {result.message}</p>
-              {result.details && (
-                <div className="details">
-                  <h3>Details:</h3>
-                  <pre>{JSON.stringify(result.details, null, 2)}</pre>
+        <Grid container spacing={3}>
+          {/* Token Generation Section */}
+          <Grid item xs={12} md={6}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Paper className="card" elevation={0}>
+                <div className="card-header">
+                  <Typography variant="h2">
+                    <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
+                    API Token
+                  </Typography>
                 </div>
-              )}
-            </div>
+                
+                <div className="card-content">
+                  <Box sx={{ mb: 3 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isAdmin}
+                          onChange={handleIsAdminChange}
+                          color="primary"
+                        />
+                      }
+                      label="Admin Privileges"
+                    />
+                    
+                    <Button 
+                      onClick={createToken}
+                      className="btn btn-primary"
+                      variant="contained"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                    >
+                      Generate New Token
+                    </Button>
+                  </Box>
+                  
+                  {newToken && (
+                    <motion.div 
+                      className="fade-in"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 500 }}>
+                        Your API Token:
+                      </Typography>
+                      
+                      <Box className="token-display">
+                        {newToken}
+                      </Box>
+                      
+                      <Box className="token-actions">
+                        <Button 
+                          variant="outlined" 
+                          startIcon={<ContentCopy />} 
+                          onClick={copyToken}
+                        >
+                          Copy
+                        </Button>
+                        <Button 
+                          variant="contained" 
+                          color="primary" 
+                          onClick={useCurrentToken}
+                        >
+                          Use This Token
+                        </Button>
+                      </Box>
+                      
+                      {tokenCopied && (
+                        <Typography className="copied-indicator">
+                          Copied to clipboard!
+                        </Typography>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              </Paper>
+            </motion.div>
+          </Grid>
+          
+          {/* Image Upload Section */}
+          <Grid item xs={12} md={6}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Paper className="card" elevation={0}>
+                <div className="card-header">
+                  <Typography variant="h2">
+                    <Security sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
+                    Content Analysis
+                  </Typography>
+                </div>
+                
+                <div className="card-content">
+                  <form onSubmit={handleSubmit}>
+                    <Box className="form-group">
+                      <TextField
+                        label="API Token"
+                        variant="outlined"
+                        fullWidth
+                        value={token}
+                        onChange={handleTokenChange}
+                        className="input-field"
+                      />
+                    </Box>
+                    
+                    <Box className="file-input-wrapper">
+                      <input 
+                        type="file" 
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        ref={fileInputRef}
+                      />
+                      {!imagePreview ? (
+                        <>
+                          <CloudUpload className="icon" />
+                          <Typography>Drag & drop or click to upload an image</Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                            Supports JPG, PNG, GIF up to 10MB
+                          </Typography>
+                        </>
+                      ) : (
+                        <Box sx={{ position: 'relative', width: '100%' }}>
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="image-preview" 
+                          />
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                            <IconButton onClick={handleFileDelete} color="error">
+                              <Delete />
+                            </IconButton>
+                            <Typography variant="body2" sx={{ ml: 1, alignSelf: 'center' }}>
+                              {file?.name}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                    
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      className="btn btn-primary"
+                      fullWidth
+                      sx={{ mt: 3 }}
+                      disabled={!file || !token}
+                      startIcon={<Upload />}
+                    >
+                      Analyze Image
+                    </Button>
+                  </form>
+                </div>
+              </Paper>
+            </motion.div>
+          </Grid>
+          
+          {/* Error Display */}
+          {error && (
+            <Grid item xs={12}>
+              <Alert 
+                severity="error" 
+                variant="filled"
+                sx={{ mb: 3 }}
+                onClose={() => setError(null)}
+              >
+                {error}
+              </Alert>
+            </Grid>
           )}
-        </div>
-      </div>
+          
+          {/* Results Display */}
+          {result && (
+            <Grid item xs={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Paper className="card result-card" elevation={0}>
+                  <Box className="status-indicator">
+                    <div 
+                      className={`status-badge ${result.is_safe ? 'safe' : 'unsafe'}`}
+                    >
+                      {result.is_safe ? (
+                        <CheckCircle />
+                      ) : (
+                        <ErrorOutline />
+                      )}
+                      <span>{result.message}</span>
+                    </div>
+                  </Box>
+                  
+                  <Box className="result-details">
+                    <Tabs 
+                      value={activeTab} 
+                      onChange={handleTabChange}
+                      centered
+                    >
+                      <Tab label="Summary" />
+                      <Tab label="Detailed Analysis" />
+                      {result.details.content_analysis && <Tab label="Charts" />}
+                    </Tabs>
+                    
+                    {/* Summary Tab */}
+                    {activeTab === 0 && (
+                      <Box className="tab-content">
+                        {result.details.violations && result.details.violations.length > 0 ? (
+                          <Box sx={{ mb: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                              Content Violations
+                            </Typography>
+                            
+                            <Grid container spacing={1}>
+                              {result.details.violations.map((violation, index) => (
+                                <Grid item key={index}>
+                                  <Chip 
+                                    label={violation} 
+                                    color="error" 
+                                    variant="outlined" 
+                                  />
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </Box>
+                        ) : (
+                          <Alert severity="success" sx={{ mb: 3 }}>
+                            No content violations detected
+                          </Alert>
+                        )}
+                        
+                        {/* Display top risk factors */}
+                        <Box sx={{ mt: 3 }}>
+                          <Typography variant="h6" gutterBottom>
+                            Top Risk Factors
+                          </Typography>
+                          
+                          {result.details.content_analysis && (
+                            <Box>
+                              {/* Nudity */}
+                              {result.details.content_analysis.nudity && (
+                                <Box className="progress-container">
+                                  <Box className="progress-label">
+                                    <span>Nudity: Sexual Activity</span>
+                                    <span>{result.details.content_analysis.nudity.sexual_activity?.toFixed(3) || 0}</span>
+                                  </Box>
+                                  <Box className="progress-bar">
+                                    <Box 
+                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.nudity.sexual_activity || 0)}`}
+                                      sx={{ width: `${Math.min((result.details.content_analysis.nudity.sexual_activity || 0) * 100, 100)}%` }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
+                              
+                              {/* Violence */}
+                              {result.details.content_analysis.violence && (
+                                <Box className="progress-container">
+                                  <Box className="progress-label">
+                                    <span>Violence</span>
+                                    <span>{result.details.content_analysis.violence.prob?.toFixed(3) || 0}</span>
+                                  </Box>
+                                  <Box className="progress-bar">
+                                    <Box 
+                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.violence.prob || 0)}`}
+                                      sx={{ width: `${Math.min((result.details.content_analysis.violence.prob || 0) * 100, 100)}%` }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
+                              
+                              {/* Weapon */}
+                              {result.details.content_analysis.weapon && result.details.content_analysis.weapon.classes && (
+                                <Box className="progress-container">
+                                  <Box className="progress-label">
+                                    <span>Weapon: Firearm</span>
+                                    <span>{result.details.content_analysis.weapon.classes.firearm?.toFixed(3) || 0}</span>
+                                  </Box>
+                                  <Box className="progress-bar">
+                                    <Box 
+                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.weapon.classes.firearm || 0)}`}
+                                      sx={{ width: `${Math.min((result.details.content_analysis.weapon.classes.firearm || 0) * 100, 100)}%` }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
+                              
+                              {/* Alcohol */}
+                              {result.details.content_analysis.alcohol && (
+                                <Box className="progress-container">
+                                  <Box className="progress-label">
+                                    <span>Alcohol</span>
+                                    <span>{result.details.content_analysis.alcohol.prob?.toFixed(3) || 0}</span>
+                                  </Box>
+                                  <Box className="progress-bar">
+                                    <Box 
+                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.alcohol.prob || 0)}`}
+                                      sx={{ width: `${Math.min((result.details.content_analysis.alcohol.prob || 0) * 100, 100)}%` }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
+                              
+                              {/* Drugs */}
+                              {result.details.content_analysis.recreational_drug && (
+                                <Box className="progress-container">
+                                  <Box className="progress-label">
+                                    <span>Recreational Drug</span>
+                                    <span>{result.details.content_analysis.recreational_drug.prob?.toFixed(3) || 0}</span>
+                                  </Box>
+                                  <Box className="progress-bar">
+                                    <Box 
+                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.recreational_drug.prob || 0)}`}
+                                      sx={{ width: `${Math.min((result.details.content_analysis.recreational_drug.prob || 0) * 100, 100)}%` }}
+                                    />
+                                  </Box>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                    
+                    {/* Detailed Analysis Tab */}
+                    {activeTab === 1 && (
+                      <Box className="tab-content">
+                        <Typography variant="body2" sx={{ mb: 2, fontFamily: 'monospace' }}>
+                          Request ID: {result.details.content_analysis.request?.id || 'N/A'}
+                        </Typography>
+                        
+                        {/* Add a nice formatting for the JSON data */}
+                        <Box 
+                          component="pre" 
+                          sx={{ 
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)', 
+                            p: 2, 
+                            borderRadius: 1, 
+                            overflow: 'auto', 
+                            fontSize: '0.875rem',
+                            maxHeight: '400px'
+                          }}
+                        >
+                          {JSON.stringify(result.details.content_analysis, null, 2)}
+                        </Box>
+                      </Box>
+                    )}
+                    
+                    {/* Charts Tab */}
+                    {activeTab === 2 && result.details.content_analysis && (
+                      <Box className="tab-content">
+                        <Grid container spacing={4}>
+                          {/* Nudity Chart */}
+                          {result.details.content_analysis.nudity && (
+                            <Grid item xs={12} md={6}>
+                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                <Typography variant="h6" gutterBottom>
+                                  Nudity Analysis
+                                </Typography>
+                                <ResponsiveContainer width="100%" height="80%">
+                                  <BarChart
+                                    data={formatDataForChart(result.details.content_analysis, 'nudity')}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                  >
+                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                    <Bar dataKey="value" fill="#8884d8" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </Paper>
+                            </Grid>
+                          )}
+                          
+                          {/* Weapon Chart */}
+                          {result.details.content_analysis.weapon && result.details.content_analysis.weapon.classes && (
+                            <Grid item xs={12} md={6}>
+                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                <Typography variant="h6" gutterBottom>
+                                  Weapon Detection
+                                </Typography>
+                                <ResponsiveContainer width="100%" height="80%">
+                                  <BarChart
+                                    data={formatDataForChart(result.details.content_analysis.weapon, 'classes')}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                  >
+                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                    <Bar dataKey="value" fill="#82ca9d" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </Paper>
+                            </Grid>
+                          )}
+                          
+                          {/* Offensive Content Chart */}
+                          {result.details.content_analysis.offensive && (
+                            <Grid item xs={12} md={6}>
+                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                <Typography variant="h6" gutterBottom>
+                                  Offensive Content
+                                </Typography>
+                                <ResponsiveContainer width="100%" height="80%">
+                                  <BarChart
+                                    data={formatDataForChart(result.details.content_analysis, 'offensive')}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                  >
+                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                    <Bar dataKey="value" fill="#ff8042" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </Paper>
+                            </Grid>
+                          )}
+                          
+                          {/* Gore Content Chart */}
+                          {result.details.content_analysis.gore && result.details.content_analysis.gore.classes && (
+                            <Grid item xs={12} md={6}>
+                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                <Typography variant="h6" gutterBottom>
+                                  Gore Content
+                                </Typography>
+                                <ResponsiveContainer width="100%" height="80%">
+                                  <BarChart
+                                    data={formatDataForChart(result.details.content_analysis.gore, 'classes')}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                  >
+                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                    <Bar dataKey="value" fill="#e57373" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </Paper>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </motion.div>
+            </Grid>
+          )}
+        </Grid>
+      </Container>
+      
+      <Snackbar
+        open={tokenCopied}
+        autoHideDuration={2000}
+        onClose={() => setTokenCopied(false)}
+        message="Token copied to clipboard"
+      />
     </div>
   );
 }
