@@ -202,7 +202,12 @@ const UsageStats = ({ token }) => {
   return (
     <Paper className="card usage-stats" elevation={0}>
       <Box className="card-header">
-        <Typography variant="h2">
+        <Typography variant="h2" sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          height: '64px', // Match the height of the tabs
+          m: 0
+        }}>
           <History sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
           API Usage Statistics
         </Typography>
@@ -230,11 +235,11 @@ const UsageStats = ({ token }) => {
           value={activeTab} 
           onChange={handleTabChange}
           centered
-          sx={{ mb: 3 }}
+          sx={{ mb: 3, minHeight: '48px' }}
         >
-          <Tab icon={<History />} label="HISTORY" />
-          <Tab icon={<BarChartIcon />} label="ENDPOINTS" />
-          <Tab icon={<Timeline />} label="TRENDS" />
+          <Tab icon={<History />} label="HISTORY" sx={{ height: '48px' }} />
+          <Tab icon={<BarChartIcon />} label="ENDPOINTS" sx={{ height: '48px' }} />
+          <Tab icon={<Timeline />} label="TRENDS" sx={{ height: '48px' }} />
         </Tabs>
         
         {loading ? (

@@ -215,7 +215,12 @@ const AdminPanel = ({ token }) => {
   return (
     <Paper className="card admin-panel" elevation={0}>
       <Box className="card-header">
-        <Typography variant="h2">
+        <Typography variant="h2" sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          height: '64px', // Match the height of the tabs
+          m: 0
+        }}>
           <AdminPanelSettings sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
           Token Management
         </Typography>

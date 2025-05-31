@@ -855,18 +855,23 @@ function App() {
             Manage API tokens and monitor system usage
           </Typography>
           
-          <Grid container spacing={3}>
+          <Grid container spacing={3} alignItems="flex-start">
             <Grid item xs={12} md={4}>
-              <Paper className="card" elevation={0}>
+              <Paper className="card" elevation={0} sx={{ height: '100%' }}>
                 <Box className="card-header">
-                  <Typography variant="h2">
+                  <Typography variant="h2" sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    height: '64px', // Match the height of the tabs
+                    m: 0
+                  }}>
                     <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
                     Admin Authentication
                   </Typography>
                 </Box>
                 
                 <Box className="card-content" sx={{ p: 3 }}>
-                  <Box sx={{ mb: 3 }}>
+                  <Box>
                     <Typography variant="body1" sx={{ mb: 2 }}>
                       Enter your admin token to manage all API tokens
                     </Typography>
@@ -884,24 +889,29 @@ function App() {
 
             <Grid item xs={12} md={8}>
               {/* Admin Panel Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                <Tabs 
-                  value={adminTab} 
-                  onChange={handleAdminTabChange}
-                  aria-label="admin panel tabs"
-                >
-                  <Tab 
-                    icon={<AdminPanelSettings />} 
-                    label="TOKEN MANAGEMENT" 
-                    id="tab-token-management"
-                  />
-                  <Tab 
-                    icon={<History />} 
-                    label="USAGE STATISTICS" 
-                    id="tab-usage-stats"
-                  />
-                </Tabs>
-              </Box>
+              <Paper elevation={0} sx={{ mb: 3 }}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs 
+                    value={adminTab} 
+                    onChange={handleAdminTabChange}
+                    aria-label="admin panel tabs"
+                    sx={{ minHeight: '64px' }}
+                  >
+                    <Tab 
+                      icon={<AdminPanelSettings />} 
+                      label="TOKEN MANAGEMENT" 
+                      id="tab-token-management"
+                      sx={{ height: '64px' }} // Ensure consistent height
+                    />
+                    <Tab 
+                      icon={<History />} 
+                      label="USAGE STATISTICS" 
+                      id="tab-usage-stats"
+                      sx={{ height: '64px' }} // Ensure consistent height
+                    />
+                  </Tabs>
+                </Box>
+              </Paper>
               
               {/* Show token management or usage stats based on the active admin tab */}
               {adminTab === 0 ? (

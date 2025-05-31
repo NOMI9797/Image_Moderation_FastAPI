@@ -44,6 +44,7 @@ const SidebarHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(3),
+  height: '64px',
   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
 }));
 
@@ -142,6 +143,7 @@ const Layout = ({ children, activeTab, handleTabChange, adminTab, handleAdminTab
                         sx={{
                           pl: 3,
                           py: 1.5,
+                          height: '56px',
                           '&.Mui-selected': {
                             backgroundColor: 'rgba(79, 195, 247, 0.08)',
                             borderLeft: '4px solid #4fc3f7',
@@ -178,6 +180,7 @@ const Layout = ({ children, activeTab, handleTabChange, adminTab, handleAdminTab
                       sx={{
                         pl: 5,
                         py: 1.2,
+                        height: '48px',
                         backgroundColor: adminTab === item.value ? 'rgba(79, 195, 247, 0.08)' : 'rgba(0, 0, 0, 0.2)',
                         borderLeft: adminTab === item.value ? '4px solid #4fc3f7' : 'none',
                         '&:hover': {
