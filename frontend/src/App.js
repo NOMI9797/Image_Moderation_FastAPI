@@ -17,7 +17,10 @@ import {
   Alert, 
   Snackbar, 
   Tooltip,
-  Chip
+  Chip,
+  CssBaseline,
+  ThemeProvider,
+  createTheme
 } from '@mui/material';
 import {
   CloudUpload, 
@@ -35,9 +38,74 @@ import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import AdminPanel from './components/AdminPanel';
 import UsageStats from './components/UsageStats';
+import Layout from './components/Layout';
+import TokenInput from './components/TokenInput';
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:7001';
+
+// Create a custom theme
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#4fc3f7',
+    },
+    secondary: {
+      main: '#f06292',
+    },
+    background: {
+      default: '#242b45',
+      paper: '#1e2439',
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontSize: '2.5rem',
+      fontWeight: 700,
+      color: '#4fc3f7',
+    },
+    h2: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
+    },
+    subtitle1: {
+      opacity: 0.8,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+        containedPrimary: {
+          boxShadow: '0 4px 14px 0 rgba(79, 195, 247, 0.3)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          fontSize: '0.9rem',
+        },
+      },
+    },
+  },
+});
 
 // Helper to determine progress bar color
 const getProgressColor = (value) => {
@@ -186,6 +254,7 @@ function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [newToken, setNewToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -225,6 +294,13 @@ function App() {
   
   const handleMainTabChange = (event, newValue) => {
     setMainTab(newValue);
+    
+    // Reset sub-tabs when switching main tabs
+    if (newValue === 0) {
+      setActiveTab(0);
+    } else if (newValue === 1) {
+      setAdminTab(0);
+    }
   };
   
   const handleAdminTabChange = (event, newValue) => {
@@ -286,44 +362,19 @@ function App() {
     }
   };
 
-  return (
-    <div className="App">
-      <Container maxWidth="lg" className="app-container">
-        <motion.div 
-          className="app-header"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Typography variant="h1" component="h1">Image Moderation</Typography>
-          <Typography variant="subtitle1">
+  // Render content based on active tab
+  const renderContent = () => {
+    if (mainTab === 0) {
+      // Image Moderation Tab
+      return (
+        <Box className="moderation-content">
+          <Typography variant="h1" component="h1" align="center" sx={{ mb: 1 }}>
+            Image Moderation
+          </Typography>
+          <Typography variant="subtitle1" align="center" sx={{ mb: 4 }}>
             Upload images to analyze content safety using advanced AI detection
           </Typography>
-        </motion.div>
-
-        {/* Main Navigation Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
-          <Tabs 
-            value={mainTab} 
-            onChange={handleMainTabChange}
-            centered
-            aria-label="main navigation tabs"
-          >
-            <Tab 
-              icon={<Security />} 
-              label="IMAGE MODERATION" 
-              id="tab-moderation"
-            />
-            <Tab 
-              icon={<AdminPanelSettings />} 
-              label="ADMIN PANEL" 
-              id="tab-admin"
-            />
-          </Tabs>
-        </Box>
-
-        {/* Conditional rendering based on the active tab */}
-        {mainTab === 0 ? (
+          
           <Grid container spacing={3}>
             {/* Token Generation Section */}
             <Grid item xs={12} md={6}>
@@ -333,14 +384,14 @@ function App() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <Paper className="card" elevation={0}>
-                  <div className="card-header">
+                  <Box className="card-header">
                     <Typography variant="h2">
                       <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
                       API Token
                     </Typography>
-                  </div>
+                  </Box>
                   
-                  <div className="card-content">
+                  <Box className="card-content" sx={{ p: 3 }}>
                     <Box sx={{ mb: 3 }}>
                       <FormControlLabel
                         control={
@@ -374,11 +425,35 @@ function App() {
                           Your API Token:
                         </Typography>
                         
-                        <Box className="token-display">
-                          {newToken}
+                        <Box className="token-display" sx={{ 
+                          p: 2, 
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                          borderRadius: 1,
+                          overflowX: 'auto',
+                          fontSize: '0.85rem',
+                          fontFamily: 'monospace',
+                          mt: 1,
+                          mb: 2,
+                          position: 'relative',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}>
+                          {showToken ? newToken : '•'.repeat(Math.min(newToken.length, 40))}
+                          <Button 
+                            size="small" 
+                            onClick={() => setShowToken(!showToken)}
+                            sx={{ 
+                              position: 'absolute',
+                              right: 8,
+                              top: 8,
+                              minWidth: 'auto', 
+                              p: 0.5 
+                            }}
+                          >
+                            {showToken ? 'Hide' : 'Show'}
+                          </Button>
                         </Box>
                         
-                        <Box className="token-actions">
+                        <Box className="token-actions" sx={{ display: 'flex', gap: 2 }}>
                           <Button 
                             variant="outlined" 
                             startIcon={<ContentCopy />} 
@@ -396,13 +471,13 @@ function App() {
                         </Box>
                         
                         {tokenCopied && (
-                          <Typography className="copied-indicator">
+                          <Typography className="copied-indicator" sx={{ mt: 1, color: 'primary.main' }}>
                             Copied to clipboard!
                           </Typography>
                         )}
                       </motion.div>
                     )}
-                  </div>
+                  </Box>
                 </Paper>
               </motion.div>
             </Grid>
@@ -415,58 +490,79 @@ function App() {
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 <Paper className="card" elevation={0}>
-                  <div className="card-header">
+                  <Box className="card-header">
                     <Typography variant="h2">
                       <Security sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
                       Content Analysis
                     </Typography>
-                  </div>
+                  </Box>
                   
-                  <div className="card-content">
+                  <Box className="card-content" sx={{ p: 3 }}>
                     <form onSubmit={handleSubmit}>
-                      <Box className="form-group">
-                        <TextField
+                      <Box className="form-group" sx={{ mb: 3 }}>
+                        <TokenInput
                           label="API Token"
-                          variant="outlined"
-                          fullWidth
                           value={token}
                           onChange={handleTokenChange}
-                          className="input-field"
+                          helperText="Enter your API token to access the moderation service"
+                          startAdornment={<VpnKey sx={{ color: 'action.active', mr: 1 }} />}
                         />
                       </Box>
                       
-                      <Box className="file-input-wrapper">
+                      <Box className="file-input-wrapper" sx={{ 
+                        border: '2px dashed rgba(79, 195, 247, 0.3)',
+                        borderRadius: 2,
+                        p: 3,
+                        textAlign: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        mb: 3,
+                        cursor: 'pointer',
+                        minHeight: 180,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
                         <input 
                           type="file" 
                           onChange={handleFileChange}
                           accept="image/*"
                           ref={fileInputRef}
+                          style={{ display: 'none' }}
+                          id="image-upload"
                         />
-                        {!imagePreview ? (
-                          <>
-                            <CloudUpload className="icon" />
-                            <Typography>Drag & drop or click to upload an image</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-                              Supports JPG, PNG, GIF up to 10MB
-                            </Typography>
-                          </>
-                        ) : (
-                          <Box sx={{ position: 'relative', width: '100%' }}>
-                            <img 
-                              src={imagePreview} 
-                              alt="Preview" 
-                              className="image-preview" 
-                            />
-                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                              <IconButton onClick={handleFileDelete} color="error">
-                                <Delete />
-                              </IconButton>
-                              <Typography variant="body2" sx={{ ml: 1, alignSelf: 'center' }}>
-                                {file?.name}
+                        <label htmlFor="image-upload" style={{ width: '100%', cursor: 'pointer' }}>
+                          {!imagePreview ? (
+                            <>
+                              <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                              <Typography variant="body1" sx={{ mb: 1 }}>Drag & drop or click to upload an image</Typography>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Supports JPG, PNG, GIF up to 10MB
                               </Typography>
+                            </>
+                          ) : (
+                            <Box sx={{ position: 'relative', width: '100%' }}>
+                              <img 
+                                src={imagePreview} 
+                                alt="Preview" 
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: '200px',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                }}
+                              />
+                              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                                <IconButton onClick={handleFileDelete} color="error" size="small">
+                                  <Delete />
+                                </IconButton>
+                                <Typography variant="body2" sx={{ alignSelf: 'center' }}>
+                                  {file?.name}
+                                </Typography>
+                              </Box>
                             </Box>
-                          </Box>
-                        )}
+                          )}
+                        </label>
                       </Box>
                       
                       <Button
@@ -474,14 +570,14 @@ function App() {
                         variant="contained"
                         className="btn btn-primary"
                         fullWidth
-                        sx={{ mt: 3 }}
+                        sx={{ py: 1.2 }}
                         disabled={!file || !token}
                         startIcon={<Upload />}
                       >
                         Analyze Image
                       </Button>
                     </form>
-                  </div>
+                  </Box>
                 </Paper>
               </motion.div>
             </Grid>
@@ -509,9 +605,20 @@ function App() {
                   transition={{ duration: 0.5 }}
                 >
                   <Paper className="card result-card" elevation={0}>
-                    <Box className="status-indicator">
-                      <div 
+                    <Box className="status-indicator" sx={{ 
+                      p: 2, 
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      backgroundColor: result.is_safe ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)'
+                    }}>
+                      <Box 
                         className={`status-badge ${result.is_safe ? 'safe' : 'unsafe'}`}
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          color: result.is_safe ? '#4caf50' : '#f44336',
+                          fontWeight: 600
+                        }}
                       >
                         {result.is_safe ? (
                           <CheckCircle />
@@ -519,14 +626,15 @@ function App() {
                           <ErrorOutline />
                         )}
                         <span>{result.message}</span>
-                      </div>
+                      </Box>
                     </Box>
                     
-                    <Box className="result-details">
+                    <Box className="result-details" sx={{ p: 3 }}>
                       <Tabs 
                         value={activeTab} 
                         onChange={handleTabChange}
                         centered
+                        sx={{ mb: 3 }}
                       >
                         <Tab label="Summary" />
                         <Tab label="Detailed Analysis" />
@@ -571,17 +679,35 @@ function App() {
                                 {extractTopProbabilities(result.details.content_analysis)
                                   .slice(0, 5) // Take only top 5 highest probabilities
                                   .map((item, index) => (
-                                    <Box className="progress-container" key={index}>
-                                      <Box className="progress-label">
-                                        <span>
+                                    <Box className="progress-container" sx={{ mb: 2 }} key={index}>
+                                      <Box className="progress-label" sx={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        mb: 0.5
+                                      }}>
+                                        <Typography variant="body2">
                                           {item.category}: {item.feature}
-                                        </span>
-                                        <span>{item.value.toFixed(3)}</span>
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={600}>
+                                          {item.value.toFixed(3)}
+                                        </Typography>
                                       </Box>
-                                      <Box className="progress-bar">
+                                      <Box className="progress-bar" sx={{ 
+                                        width: '100%', 
+                                        height: 8, 
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                        borderRadius: 4,
+                                        overflow: 'hidden'
+                                      }}>
                                         <Box 
                                           className={`progress-fill ${getProgressColor(item.value)}`}
-                                          sx={{ width: `${Math.min(item.value * 100, 100)}%` }}
+                                          sx={{ 
+                                            height: '100%',
+                                            backgroundColor: item.value < 0.4 ? '#4caf50' : 
+                                                            item.value < 0.7 ? '#ff9800' : '#f44336',
+                                            width: `${Math.min(item.value * 100, 100)}%`,
+                                            borderRadius: 4
+                                          }}
                                         />
                                       </Box>
                                     </Box>
@@ -603,7 +729,7 @@ function App() {
                           <Box 
                             component="pre" 
                             sx={{ 
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)', 
+                              backgroundColor: 'rgba(0, 0, 0, 0.1)', 
                               p: 2, 
                               borderRadius: 1, 
                               overflow: 'auto', 
@@ -716,84 +842,101 @@ function App() {
               </Grid>
             )}
           </Grid>
-        ) : (
-          // Admin Panel tab content
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
-                <Paper className="card" elevation={0}>
-                  <div className="card-header">
-                    <Typography variant="h2">
-                      <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
-                      Admin Authentication
-                    </Typography>
-                  </div>
-                  
-                  <div className="card-content">
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="body1" sx={{ mb: 2 }}>
-                        Enter your admin token to manage all API tokens
-                      </Typography>
-                      <TextField
-                        label="Admin Token"
-                        variant="outlined"
-                        fullWidth
-                        value={token}
-                        onChange={handleTokenChange}
-                        className="input-field"
-                      />
-                      <Typography variant="body2" sx={{ mt: 2, color: "text.secondary" }}>
-                        Note: Only tokens with admin privileges can access token management features
-                      </Typography>
-                    </Box>
-                  </div>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={8}>
-                {/* Admin Panel Tabs */}
-                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                  <Tabs 
-                    value={adminTab} 
-                    onChange={handleAdminTabChange}
-                    aria-label="admin panel tabs"
-                  >
-                    <Tab 
-                      icon={<AdminPanelSettings />} 
-                      label="TOKEN MANAGEMENT" 
-                      id="tab-token-management"
-                    />
-                    <Tab 
-                      icon={<History />} 
-                      label="USAGE STATISTICS" 
-                      id="tab-usage-stats"
-                    />
-                  </Tabs>
+        </Box>
+      );
+    } else {
+      // Admin Panel Tab
+      return (
+        <Box className="admin-content">
+          <Typography variant="h1" component="h1" align="center" sx={{ mb: 1 }}>
+            Admin Control Panel
+          </Typography>
+          <Typography variant="subtitle1" align="center" sx={{ mb: 4 }}>
+            Manage API tokens and monitor system usage
+          </Typography>
+          
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Paper className="card" elevation={0}>
+                <Box className="card-header">
+                  <Typography variant="h2">
+                    <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
+                    Admin Authentication
+                  </Typography>
                 </Box>
                 
-                {/* Show token management or usage stats based on the active admin tab */}
-                {adminTab === 0 ? (
-                  <AdminPanel token={token} />
-                ) : (
-                  <UsageStats token={token} />
-                )}
-              </Grid>
+                <Box className="card-content" sx={{ p: 3 }}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      Enter your admin token to manage all API tokens
+                    </Typography>
+                    <TokenInput
+                      label="Admin Token"
+                      value={token}
+                      onChange={handleTokenChange}
+                      helperText="Only tokens with admin privileges can access management features"
+                      startAdornment={<AdminPanelSettings sx={{ color: 'action.active', mr: 1 }} />}
+                    />
+                  </Box>
+                </Box>
+              </Paper>
             </Grid>
-          </motion.div>
-        )}
-      </Container>
-      
-      <Snackbar
-        open={tokenCopied}
-        autoHideDuration={2000}
-        onClose={() => setTokenCopied(false)}
-        message="Token copied to clipboard"
-      />
-    </div>
+
+            <Grid item xs={12} md={8}>
+              {/* Admin Panel Tabs */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs 
+                  value={adminTab} 
+                  onChange={handleAdminTabChange}
+                  aria-label="admin panel tabs"
+                >
+                  <Tab 
+                    icon={<AdminPanelSettings />} 
+                    label="TOKEN MANAGEMENT" 
+                    id="tab-token-management"
+                  />
+                  <Tab 
+                    icon={<History />} 
+                    label="USAGE STATISTICS" 
+                    id="tab-usage-stats"
+                  />
+                </Tabs>
+              </Box>
+              
+              {/* Show token management or usage stats based on the active admin tab */}
+              {adminTab === 0 ? (
+                <AdminPanel token={token} />
+              ) : (
+                <UsageStats token={token} />
+              )}
+            </Grid>
+          </Grid>
+        </Box>
+      );
+    }
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div className="App">
+        <Layout 
+          activeTab={mainTab} 
+          handleTabChange={handleMainTabChange}
+          adminTab={adminTab}
+          handleAdminTabChange={handleAdminTabChange}
+        >
+          {renderContent()}
+        </Layout>
+        
+        <Snackbar
+          open={tokenCopied}
+          autoHideDuration={2000}
+          onClose={() => setTokenCopied(false)}
+          message="Token copied to clipboard"
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 

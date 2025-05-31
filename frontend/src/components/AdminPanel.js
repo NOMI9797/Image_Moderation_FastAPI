@@ -23,7 +23,8 @@ import {
   Badge,
   Tooltip
 } from '@mui/material';
-import { Delete, AdminPanelSettings, PersonOutline, History, BarChart } from '@mui/icons-material';
+import { Delete, AdminPanelSettings, PersonOutline, History, BarChart, VpnKey } from '@mui/icons-material';
+import TokenInput from './TokenInput';
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:7001';
@@ -269,7 +270,13 @@ const AdminPanel = ({ token }) => {
                           maxWidth: '200px',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis'
+                          textOverflow: 'ellipsis',
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
                         }}>
                           {tokenItem.token}
                         </Box>
@@ -383,7 +390,14 @@ const AdminPanel = ({ token }) => {
             </Box>
           ) : (
             <>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontFamily: 'monospace' }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ 
+                fontFamily: 'monospace',
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                overflow: 'auto'
+              }}>
                 Token: {usageDialog.tokenId}
               </Typography>
               

@@ -15,12 +15,15 @@ import {
   CircularProgress,
   Chip,
   Tabs,
-  Tab
+  Tab,
+  Tooltip,
+  TextField
 } from '@mui/material';
 import { 
   History, 
   BarChart as BarChartIcon, 
-  Timeline 
+  Timeline,
+  VpnKey
 } from '@mui/icons-material';
 import { 
   BarChart, 
@@ -84,15 +87,75 @@ const UsageStats = ({ token }) => {
     return date.toLocaleString();
   };
 
+  // Format endpoint for display
+  const formatEndpoint = (endpoint) => {
+    // For token-specific endpoints, extract just the endpoint type and show a shorter token version
+    if (endpoint.includes('/auth/usage/token/')) {
+      const tokenId = endpoint.split('/').pop();
+      return {
+        main: '/auth/usage/token/',
+        token: tokenId.length > 10 ? `${tokenId.substring(0, 8)}...` : tokenId,
+        color: 'info' // blue color
+      };
+    } 
+    else if (endpoint.includes('/auth/tokens/')) {
+      const tokenId = endpoint.split('/').pop();
+      return {
+        main: '/auth/tokens/',
+        token: tokenId.length > 10 ? `${tokenId.substring(0, 8)}...` : tokenId,
+        color: 'warning' // orange color
+      };
+    }
+    // For standard endpoints
+    else if (endpoint === '/moderate') {
+      return { 
+        main: endpoint,
+        token: null,
+        color: 'success' // green color
+      };
+    }
+    else if (endpoint === '/auth/tokens') {
+      return { 
+        main: endpoint,
+        token: null,
+        color: 'primary' // blue color
+      };
+    }
+    else if (endpoint.includes('/auth/usage/my-usage')) {
+      return { 
+        main: endpoint,
+        token: null,
+        color: 'secondary' // purple color
+      };
+    }
+    
+    // Default case
+    return { 
+      main: endpoint,
+      token: null,
+      color: 'default' // gray color
+    };
+  };
+
   // Prepare data for endpoint distribution chart
   const prepareEndpointData = () => {
     const endpointCounts = {};
     
     usageData.forEach(usage => {
-      if (endpointCounts[usage.endpoint]) {
-        endpointCounts[usage.endpoint]++;
+      // Format the endpoint for better readability
+      let formattedEndpoint = usage.endpoint;
+      
+      // If it's a token-specific endpoint, extract just the endpoint type
+      if (formattedEndpoint.includes('/auth/usage/token/')) {
+        formattedEndpoint = '/auth/usage/token/*';
+      } else if (formattedEndpoint.includes('/auth/tokens/')) {
+        formattedEndpoint = '/auth/tokens/*';
+      }
+      
+      if (endpointCounts[formattedEndpoint]) {
+        endpointCounts[formattedEndpoint]++;
       } else {
-        endpointCounts[usage.endpoint] = 1;
+        endpointCounts[formattedEndpoint] = 1;
       }
     });
     
@@ -117,7 +180,15 @@ const UsageStats = ({ token }) => {
     
     // Convert to array and sort by date
     return Object.entries(dayUsage)
-      .map(([date, count]) => ({ date, count }))
+      .map(([date, count]) => ({ 
+        date, 
+        count,
+        // Add formatted date for display
+        formattedDate: new Date(date).toLocaleDateString(undefined, { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      }))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   };
 
@@ -187,18 +258,33 @@ const UsageStats = ({ token }) => {
                       // Sort by timestamp (newest first)
                       [...usageData]
                         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                        .map((usage, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Chip 
-                                label={usage.endpoint} 
-                                color="primary" 
-                                variant="outlined" 
-                              />
-                            </TableCell>
-                            <TableCell>{formatDate(usage.timestamp)}</TableCell>
-                          </TableRow>
-                        ))
+                        .map((usage, index) => {
+                          const endpointInfo = formatEndpoint(usage.endpoint);
+                          return (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip 
+                                    label={endpointInfo.main} 
+                                    color={endpointInfo.color} 
+                                    variant="outlined"
+                                    size="small" 
+                                  />
+                                  {endpointInfo.token && (
+                                    <Tooltip title={usage.endpoint.split('/').pop()}>
+                                      <Chip
+                                        label={endpointInfo.token}
+                                        size="small"
+                                        variant="outlined"
+                                      />
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell>{formatDate(usage.timestamp)}</TableCell>
+                            </TableRow>
+                          );
+                        })
                     ) : (
                       <TableRow>
                         <TableCell colSpan={2} align="center">
@@ -222,7 +308,12 @@ const UsageStats = ({ token }) => {
                         cx="50%"
                         cy="50%"
                         labelLine={true}
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        label={({ name, percent }) => {
+                          // Short version of the name for the label
+                          const shortName = name.length > 20 ? 
+                            `${name.substring(0, 17)}...` : name;
+                          return `${shortName} (${(percent * 100).toFixed(0)}%)`;
+                        }}
                         outerRadius={150}
                         fill="#8884d8"
                         dataKey="value"
@@ -231,8 +322,16 @@ const UsageStats = ({ token }) => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <RechartsTooltip />
-                      <Legend />
+                      <RechartsTooltip 
+                        formatter={(value, name, props) => {
+                          return [`${value} calls`, name];
+                        }}
+                      />
+                      <Legend 
+                        formatter={(value, entry, index) => {
+                          return value.length > 25 ? `${value.substring(0, 22)}...` : value;
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -251,17 +350,53 @@ const UsageStats = ({ token }) => {
                     <BarChart
                       data={prepareTimeData()}
                       margin={{
-                        top: 5,
+                        top: 20,
                         right: 30,
                         left: 20,
-                        bottom: 5,
+                        bottom: 60,
                       }}
                     >
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="count" name="API Requests" fill="#8884d8" />
+                      <XAxis 
+                        dataKey="formattedDate" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={60}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        allowDecimals={false}
+                        label={{ 
+                          value: 'API Calls', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          style: { textAnchor: 'middle' }
+                        }}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value, name) => [`${value} calls`, 'API Usage']}
+                        labelFormatter={(label, payload) => {
+                          if (payload && payload.length > 0) {
+                            // Find the original date from the data point
+                            const dataPoint = prepareTimeData().find(item => item.formattedDate === label);
+                            if (dataPoint) {
+                              return new Date(dataPoint.date).toLocaleDateString(undefined, { 
+                                weekday: 'long',
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              });
+                            }
+                          }
+                          return label;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        name="API Requests" 
+                        fill="#4fc3f7" 
+                        radius={[4, 4, 0, 0]}
+                        barSize={30}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

@@ -25,21 +25,17 @@
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  background: var(--background-dark);
-  font-family: 'Poppins', sans-serif;
-  color: var(--text-dark);
+  font-family: 'Inter', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #242b45;
+  color: #ffffff;
 }
 
 .App {
-  text-align: center;
   min-height: 100vh;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, var(--background-dark) 0%, #16213e 100%);
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .app-container {
@@ -75,19 +71,23 @@ body {
 
 /* Card Styles */
 .card {
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   box-shadow: var(--card-shadow);
   transition: all 0.3s ease;
   margin-bottom: 30px;
-  overflow: hidden;
   position: relative;
 }
 
 .card-header {
-  background: linear-gradient(to right, var(--primary-color), var(--primary-dark));
   padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
   color: white;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
@@ -100,6 +100,9 @@ body {
 }
 
 .card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 25px;
 }
 
@@ -233,30 +236,23 @@ body {
 }
 
 .status-badge {
-  padding: 10px 20px;
-  border-radius: 50px;
-  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-weight: 600;
 }
 
 .status-badge.safe {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: var(--safe-color);
-  border: 1px solid var(--safe-color);
+  color: #4caf50;
 }
 
 .status-badge.unsafe {
-  background-color: rgba(244, 67, 54, 0.1);
-  color: var(--danger-color);
-  border: 1px solid var(--danger-color);
+  color: #f44336;
 }
 
 /* Progress Bar */
 .progress-container {
-  margin-bottom: 10px;
-  text-align: left;
+  margin-bottom: 16px;
 }
 
 .progress-label {
@@ -271,11 +267,11 @@ body {
 }
 
 .progress-bar {
+  position: relative;
   height: 8px;
   background-color: #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
-  position: relative;
 }
 
 .progress-fill {
@@ -285,15 +281,15 @@ body {
 }
 
 .progress-fill.low {
-  background-color: var(--safe-color);
+  background-color: #4caf50;
 }
 
 .progress-fill.medium {
-  background-color: var(--warning-color);
+  background-color: #ff9800;
 }
 
 .progress-fill.high {
-  background-color: var(--danger-color);
+  background-color: #f44336;
 }
 
 /* Result Details */
@@ -321,7 +317,7 @@ body {
 }
 
 .tab-content {
-  padding: 20px 0;
+  padding: 10px 0;
 }
 
 .analysis-grid {
@@ -354,6 +350,16 @@ body {
   }
 }
 
+@media (max-width: 960px) {
+  .card-header {
+    padding: 16px;
+  }
+  
+  .card-content {
+    padding: 16px !important;
+  }
+}
+
 .error {
   color: #fff;
   padding: 15px;
@@ -367,19 +373,13 @@ body {
 }
 
 /* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .image-preview {
@@ -391,10 +391,7 @@ body {
 }
 
 .token-display {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
-  padding: 10px 15px;
-  font-family: monospace;
+  position: relative;
   word-break: break-all;
 }
 
@@ -405,9 +402,16 @@ body {
 }
 
 .copied-indicator {
-  font-size: 14px;
-  color: var(--primary-color);
-  margin-top: 5px;
+  position: relative;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  animation: fadeOut 2s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .empty-state {
@@ -435,4 +439,42 @@ body {
   width: 18px;
   height: 18px;
   accent-color: var(--primary-color);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(79, 195, 247, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 195, 247, 0.5);
+}
+
+/* Admin Panel Specific Styles */
+.admin-panel .token-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Use full height for layout */
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* File Upload Styling */
+input[type="file"] {
+  display: none;
 }
