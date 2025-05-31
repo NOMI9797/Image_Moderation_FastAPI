@@ -59,6 +59,122 @@ const formatDataForChart = (data, category) => {
   return [];
 };
 
+// Extract top probability features from all categories
+const extractTopProbabilities = (contentAnalysis) => {
+  if (!contentAnalysis) return [];
+
+  const allProbs = [];
+
+  // Extract probability values from nudity category
+  if (contentAnalysis.nudity) {
+    Object.entries(contentAnalysis.nudity)
+      .filter(([key, value]) => typeof value === 'number' && key !== 'none' && !key.includes('context'))
+      .forEach(([key, value]) => {
+        allProbs.push({
+          category: 'Nudity',
+          feature: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          value: value
+        });
+      });
+  }
+
+  // Extract weapon probabilities
+  if (contentAnalysis.weapon && contentAnalysis.weapon.classes) {
+    Object.entries(contentAnalysis.weapon.classes)
+      .filter(([key, value]) => typeof value === 'number')
+      .forEach(([key, value]) => {
+        allProbs.push({
+          category: 'Weapon',
+          feature: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          value: value
+        });
+      });
+  }
+
+  // Extract violence probability
+  if (contentAnalysis.violence && typeof contentAnalysis.violence.prob === 'number') {
+    allProbs.push({
+      category: 'Violence',
+      feature: 'Violence',
+      value: contentAnalysis.violence.prob
+    });
+  }
+
+  // Extract alcohol probability
+  if (contentAnalysis.alcohol && typeof contentAnalysis.alcohol.prob === 'number') {
+    allProbs.push({
+      category: 'Alcohol',
+      feature: 'Alcohol',
+      value: contentAnalysis.alcohol.prob
+    });
+  }
+
+  // Extract drug probability
+  if (contentAnalysis.recreational_drug && typeof contentAnalysis.recreational_drug.prob === 'number') {
+    allProbs.push({
+      category: 'Drugs',
+      feature: 'Recreational Drug',
+      value: contentAnalysis.recreational_drug.prob
+    });
+  }
+
+  // Extract offensive content probabilities
+  if (contentAnalysis.offensive) {
+    Object.entries(contentAnalysis.offensive)
+      .filter(([key, value]) => typeof value === 'number')
+      .forEach(([key, value]) => {
+        allProbs.push({
+          category: 'Offensive',
+          feature: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          value: value
+        });
+      });
+  }
+
+  // Extract gore probability
+  if (contentAnalysis.gore && typeof contentAnalysis.gore.prob === 'number') {
+    allProbs.push({
+      category: 'Gore',
+      feature: 'Gore Content',
+      value: contentAnalysis.gore.prob
+    });
+    
+    // Also extract gore classes if available
+    if (contentAnalysis.gore.classes) {
+      Object.entries(contentAnalysis.gore.classes)
+        .filter(([key, value]) => typeof value === 'number')
+        .forEach(([key, value]) => {
+          allProbs.push({
+            category: 'Gore',
+            feature: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            value: value
+          });
+        });
+    }
+  }
+
+  // Extract tobacco probability
+  if (contentAnalysis.tobacco && typeof contentAnalysis.tobacco.prob === 'number') {
+    allProbs.push({
+      category: 'Tobacco',
+      feature: 'Tobacco',
+      value: contentAnalysis.tobacco.prob
+    });
+  }
+
+  // Extract self-harm probability
+  if (contentAnalysis['self-harm'] && typeof contentAnalysis['self-harm'].prob === 'number') {
+    allProbs.push({
+      category: 'Self-Harm',
+      feature: 'Self-Harm',
+      value: contentAnalysis['self-harm'].prob
+    });
+  }
+
+  // Sort by value in descending order and take the top ones
+  return allProbs.sort((a, b) => b.value - a.value);
+};
+
 function App() {
   const [token, setToken] = useState('');
   const [file, setFile] = useState(null);
@@ -415,85 +531,24 @@ function App() {
                           
                           {result.details.content_analysis && (
                             <Box>
-                              {/* Nudity */}
-                              {result.details.content_analysis.nudity && (
-                                <Box className="progress-container">
-                                  <Box className="progress-label">
-                                    <span>Nudity: Sexual Activity</span>
-                                    <span>{result.details.content_analysis.nudity.sexual_activity?.toFixed(3) || 0}</span>
+                              {extractTopProbabilities(result.details.content_analysis)
+                                .slice(0, 5) // Take only top 5 highest probabilities
+                                .map((item, index) => (
+                                  <Box className="progress-container" key={index}>
+                                    <Box className="progress-label">
+                                      <span>
+                                        {item.category}: {item.feature}
+                                      </span>
+                                      <span>{item.value.toFixed(3)}</span>
+                                    </Box>
+                                    <Box className="progress-bar">
+                                      <Box 
+                                        className={`progress-fill ${getProgressColor(item.value)}`}
+                                        sx={{ width: `${Math.min(item.value * 100, 100)}%` }}
+                                      />
+                                    </Box>
                                   </Box>
-                                  <Box className="progress-bar">
-                                    <Box 
-                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.nudity.sexual_activity || 0)}`}
-                                      sx={{ width: `${Math.min((result.details.content_analysis.nudity.sexual_activity || 0) * 100, 100)}%` }}
-                                    />
-                                  </Box>
-                                </Box>
-                              )}
-                              
-                              {/* Violence */}
-                              {result.details.content_analysis.violence && (
-                                <Box className="progress-container">
-                                  <Box className="progress-label">
-                                    <span>Violence</span>
-                                    <span>{result.details.content_analysis.violence.prob?.toFixed(3) || 0}</span>
-                                  </Box>
-                                  <Box className="progress-bar">
-                                    <Box 
-                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.violence.prob || 0)}`}
-                                      sx={{ width: `${Math.min((result.details.content_analysis.violence.prob || 0) * 100, 100)}%` }}
-                                    />
-                                  </Box>
-                                </Box>
-                              )}
-                              
-                              {/* Weapon */}
-                              {result.details.content_analysis.weapon && result.details.content_analysis.weapon.classes && (
-                                <Box className="progress-container">
-                                  <Box className="progress-label">
-                                    <span>Weapon: Firearm</span>
-                                    <span>{result.details.content_analysis.weapon.classes.firearm?.toFixed(3) || 0}</span>
-                                  </Box>
-                                  <Box className="progress-bar">
-                                    <Box 
-                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.weapon.classes.firearm || 0)}`}
-                                      sx={{ width: `${Math.min((result.details.content_analysis.weapon.classes.firearm || 0) * 100, 100)}%` }}
-                                    />
-                                  </Box>
-                                </Box>
-                              )}
-                              
-                              {/* Alcohol */}
-                              {result.details.content_analysis.alcohol && (
-                                <Box className="progress-container">
-                                  <Box className="progress-label">
-                                    <span>Alcohol</span>
-                                    <span>{result.details.content_analysis.alcohol.prob?.toFixed(3) || 0}</span>
-                                  </Box>
-                                  <Box className="progress-bar">
-                                    <Box 
-                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.alcohol.prob || 0)}`}
-                                      sx={{ width: `${Math.min((result.details.content_analysis.alcohol.prob || 0) * 100, 100)}%` }}
-                                    />
-                                  </Box>
-                                </Box>
-                              )}
-                              
-                              {/* Drugs */}
-                              {result.details.content_analysis.recreational_drug && (
-                                <Box className="progress-container">
-                                  <Box className="progress-label">
-                                    <span>Recreational Drug</span>
-                                    <span>{result.details.content_analysis.recreational_drug.prob?.toFixed(3) || 0}</span>
-                                  </Box>
-                                  <Box className="progress-bar">
-                                    <Box 
-                                      className={`progress-fill ${getProgressColor(result.details.content_analysis.recreational_drug.prob || 0)}`}
-                                      sx={{ width: `${Math.min((result.details.content_analysis.recreational_drug.prob || 0) * 100, 100)}%` }}
-                                    />
-                                  </Box>
-                                </Box>
-                              )}
+                                ))}
                             </Box>
                           )}
                         </Box>

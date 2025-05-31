@@ -27,6 +27,7 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:7001
+    command: ["serve", "-s", "build", "-l", "3000"]
     depends_on:
       - backend
     networks:
