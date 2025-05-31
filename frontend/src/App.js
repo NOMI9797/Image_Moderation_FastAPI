@@ -27,10 +27,14 @@ import {
   ErrorOutline, 
   ContentCopy, 
   Upload, 
-  Delete
+  Delete,
+  AdminPanelSettings,
+  History
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import AdminPanel from './components/AdminPanel';
+import UsageStats from './components/UsageStats';
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:7001';
@@ -185,6 +189,8 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [mainTab, setMainTab] = useState(0); // Main tabs (Moderation/Admin)
+  const [adminTab, setAdminTab] = useState(0); // Admin panel tabs (Tokens/Usage)
   const fileInputRef = useRef(null);
 
   const handleTokenChange = (e) => setToken(e.target.value);
@@ -215,6 +221,14 @@ function App() {
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+  
+  const handleMainTabChange = (event, newValue) => {
+    setMainTab(newValue);
+  };
+  
+  const handleAdminTabChange = (event, newValue) => {
+    setAdminTab(newValue);
   };
   
   const copyToken = () => {
@@ -287,398 +301,490 @@ function App() {
           </Typography>
         </motion.div>
 
-        <Grid container spacing={3}>
-          {/* Token Generation Section */}
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Paper className="card" elevation={0}>
-                <div className="card-header">
-                  <Typography variant="h2">
-                    <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
-                    API Token
-                  </Typography>
-                </div>
-                
-                <div className="card-content">
-                  <Box sx={{ mb: 3 }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={isAdmin}
-                          onChange={handleIsAdminChange}
-                          color="primary"
-                        />
-                      }
-                      label="Admin Privileges"
-                    />
-                    
-                    <Button 
-                      onClick={createToken}
-                      className="btn btn-primary"
-                      variant="contained"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                    >
-                      Generate New Token
-                    </Button>
-                  </Box>
+        {/* Main Navigation Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
+          <Tabs 
+            value={mainTab} 
+            onChange={handleMainTabChange}
+            centered
+            aria-label="main navigation tabs"
+          >
+            <Tab 
+              icon={<Security />} 
+              label="IMAGE MODERATION" 
+              id="tab-moderation"
+            />
+            <Tab 
+              icon={<AdminPanelSettings />} 
+              label="ADMIN PANEL" 
+              id="tab-admin"
+            />
+          </Tabs>
+        </Box>
+
+        {/* Conditional rendering based on the active tab */}
+        {mainTab === 0 ? (
+          <Grid container spacing={3}>
+            {/* Token Generation Section */}
+            <Grid item xs={12} md={6}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Paper className="card" elevation={0}>
+                  <div className="card-header">
+                    <Typography variant="h2">
+                      <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
+                      API Token
+                    </Typography>
+                  </div>
                   
-                  {newToken && (
-                    <motion.div 
-                      className="fade-in"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 500 }}>
-                        Your API Token:
-                      </Typography>
+                  <div className="card-content">
+                    <Box sx={{ mb: 3 }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={isAdmin}
+                            onChange={handleIsAdminChange}
+                            color="primary"
+                          />
+                        }
+                        label="Admin Privileges"
+                      />
                       
-                      <Box className="token-display">
-                        {newToken}
-                      </Box>
-                      
-                      <Box className="token-actions">
-                        <Button 
-                          variant="outlined" 
-                          startIcon={<ContentCopy />} 
-                          onClick={copyToken}
-                        >
-                          Copy
-                        </Button>
-                        <Button 
-                          variant="contained" 
-                          color="primary" 
-                          onClick={useCurrentToken}
-                        >
-                          Use This Token
-                        </Button>
-                      </Box>
-                      
-                      {tokenCopied && (
-                        <Typography className="copied-indicator">
-                          Copied to clipboard!
+                      <Button 
+                        onClick={createToken}
+                        className="btn btn-primary"
+                        variant="contained"
+                        fullWidth
+                        sx={{ mt: 2 }}
+                      >
+                        Generate New Token
+                      </Button>
+                    </Box>
+                    
+                    {newToken && (
+                      <motion.div 
+                        className="fade-in"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      >
+                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 500 }}>
+                          Your API Token:
                         </Typography>
+                        
+                        <Box className="token-display">
+                          {newToken}
+                        </Box>
+                        
+                        <Box className="token-actions">
+                          <Button 
+                            variant="outlined" 
+                            startIcon={<ContentCopy />} 
+                            onClick={copyToken}
+                          >
+                            Copy
+                          </Button>
+                          <Button 
+                            variant="contained" 
+                            color="primary" 
+                            onClick={useCurrentToken}
+                          >
+                            Use This Token
+                          </Button>
+                        </Box>
+                        
+                        {tokenCopied && (
+                          <Typography className="copied-indicator">
+                            Copied to clipboard!
+                          </Typography>
+                        )}
+                      </motion.div>
+                    )}
+                  </div>
+                </Paper>
+              </motion.div>
+            </Grid>
+            
+            {/* Image Upload Section */}
+            <Grid item xs={12} md={6}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Paper className="card" elevation={0}>
+                  <div className="card-header">
+                    <Typography variant="h2">
+                      <Security sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
+                      Content Analysis
+                    </Typography>
+                  </div>
+                  
+                  <div className="card-content">
+                    <form onSubmit={handleSubmit}>
+                      <Box className="form-group">
+                        <TextField
+                          label="API Token"
+                          variant="outlined"
+                          fullWidth
+                          value={token}
+                          onChange={handleTokenChange}
+                          className="input-field"
+                        />
+                      </Box>
+                      
+                      <Box className="file-input-wrapper">
+                        <input 
+                          type="file" 
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          ref={fileInputRef}
+                        />
+                        {!imagePreview ? (
+                          <>
+                            <CloudUpload className="icon" />
+                            <Typography>Drag & drop or click to upload an image</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                              Supports JPG, PNG, GIF up to 10MB
+                            </Typography>
+                          </>
+                        ) : (
+                          <Box sx={{ position: 'relative', width: '100%' }}>
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="image-preview" 
+                            />
+                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                              <IconButton onClick={handleFileDelete} color="error">
+                                <Delete />
+                              </IconButton>
+                              <Typography variant="body2" sx={{ ml: 1, alignSelf: 'center' }}>
+                                {file?.name}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                      
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        className="btn btn-primary"
+                        fullWidth
+                        sx={{ mt: 3 }}
+                        disabled={!file || !token}
+                        startIcon={<Upload />}
+                      >
+                        Analyze Image
+                      </Button>
+                    </form>
+                  </div>
+                </Paper>
+              </motion.div>
+            </Grid>
+            
+            {/* Error Display */}
+            {error && (
+              <Grid item xs={12}>
+                <Alert 
+                  severity="error" 
+                  variant="filled"
+                  sx={{ mb: 3 }}
+                  onClose={() => setError(null)}
+                >
+                  {error}
+                </Alert>
+              </Grid>
+            )}
+            
+            {/* Results Display */}
+            {result && (
+              <Grid item xs={12}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Paper className="card result-card" elevation={0}>
+                    <Box className="status-indicator">
+                      <div 
+                        className={`status-badge ${result.is_safe ? 'safe' : 'unsafe'}`}
+                      >
+                        {result.is_safe ? (
+                          <CheckCircle />
+                        ) : (
+                          <ErrorOutline />
+                        )}
+                        <span>{result.message}</span>
+                      </div>
+                    </Box>
+                    
+                    <Box className="result-details">
+                      <Tabs 
+                        value={activeTab} 
+                        onChange={handleTabChange}
+                        centered
+                      >
+                        <Tab label="Summary" />
+                        <Tab label="Detailed Analysis" />
+                        {result.details.content_analysis && <Tab label="Charts" />}
+                      </Tabs>
+                      
+                      {/* Summary Tab */}
+                      {activeTab === 0 && (
+                        <Box className="tab-content">
+                          {result.details.violations && result.details.violations.length > 0 ? (
+                            <Box sx={{ mb: 3 }}>
+                              <Typography variant="h6" gutterBottom>
+                                Content Violations
+                              </Typography>
+                              
+                              <Grid container spacing={1}>
+                                {result.details.violations.map((violation, index) => (
+                                  <Grid item key={index}>
+                                    <Chip 
+                                      label={violation} 
+                                      color="error" 
+                                      variant="outlined" 
+                                    />
+                                  </Grid>
+                                ))}
+                              </Grid>
+                            </Box>
+                          ) : (
+                            <Alert severity="success" sx={{ mb: 3 }}>
+                              No content violations detected
+                            </Alert>
+                          )}
+                          
+                          {/* Display top risk factors */}
+                          <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                              Top Risk Factors
+                            </Typography>
+                            
+                            {result.details.content_analysis && (
+                              <Box>
+                                {extractTopProbabilities(result.details.content_analysis)
+                                  .slice(0, 5) // Take only top 5 highest probabilities
+                                  .map((item, index) => (
+                                    <Box className="progress-container" key={index}>
+                                      <Box className="progress-label">
+                                        <span>
+                                          {item.category}: {item.feature}
+                                        </span>
+                                        <span>{item.value.toFixed(3)}</span>
+                                      </Box>
+                                      <Box className="progress-bar">
+                                        <Box 
+                                          className={`progress-fill ${getProgressColor(item.value)}`}
+                                          sx={{ width: `${Math.min(item.value * 100, 100)}%` }}
+                                        />
+                                      </Box>
+                                    </Box>
+                                  ))}
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
                       )}
-                    </motion.div>
-                  )}
-                </div>
-              </Paper>
-            </motion.div>
+                      
+                      {/* Detailed Analysis Tab */}
+                      {activeTab === 1 && (
+                        <Box className="tab-content">
+                          <Typography variant="body2" sx={{ mb: 2, fontFamily: 'monospace' }}>
+                            Request ID: {result.details.content_analysis.request?.id || 'N/A'}
+                          </Typography>
+                          
+                          {/* Add a nice formatting for the JSON data */}
+                          <Box 
+                            component="pre" 
+                            sx={{ 
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)', 
+                              p: 2, 
+                              borderRadius: 1, 
+                              overflow: 'auto', 
+                              fontSize: '0.875rem',
+                              maxHeight: '400px'
+                            }}
+                          >
+                            {JSON.stringify(result.details.content_analysis, null, 2)}
+                          </Box>
+                        </Box>
+                      )}
+                      
+                      {/* Charts Tab */}
+                      {activeTab === 2 && result.details.content_analysis && (
+                        <Box className="tab-content">
+                          <Grid container spacing={4}>
+                            {/* Nudity Chart */}
+                            {result.details.content_analysis.nudity && (
+                              <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                  <Typography variant="h6" gutterBottom>
+                                    Nudity Analysis
+                                  </Typography>
+                                  <ResponsiveContainer width="100%" height="80%">
+                                    <BarChart
+                                      data={formatDataForChart(result.details.content_analysis, 'nudity')}
+                                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                    >
+                                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                      <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                      <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                      <Bar dataKey="value" fill="#8884d8" />
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </Paper>
+                              </Grid>
+                            )}
+                            
+                            {/* Weapon Chart */}
+                            {result.details.content_analysis.weapon && result.details.content_analysis.weapon.classes && (
+                              <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                  <Typography variant="h6" gutterBottom>
+                                    Weapon Detection
+                                  </Typography>
+                                  <ResponsiveContainer width="100%" height="80%">
+                                    <BarChart
+                                      data={formatDataForChart(result.details.content_analysis.weapon, 'classes')}
+                                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                    >
+                                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                      <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                      <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                      <Bar dataKey="value" fill="#82ca9d" />
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </Paper>
+                              </Grid>
+                            )}
+                            
+                            {/* Offensive Content Chart */}
+                            {result.details.content_analysis.offensive && (
+                              <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                  <Typography variant="h6" gutterBottom>
+                                    Offensive Content
+                                  </Typography>
+                                  <ResponsiveContainer width="100%" height="80%">
+                                    <BarChart
+                                      data={formatDataForChart(result.details.content_analysis, 'offensive')}
+                                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                    >
+                                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                      <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                      <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                      <Bar dataKey="value" fill="#ff8042" />
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </Paper>
+                              </Grid>
+                            )}
+                            
+                            {/* Gore Content Chart */}
+                            {result.details.content_analysis.gore && result.details.content_analysis.gore.classes && (
+                              <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
+                                  <Typography variant="h6" gutterBottom>
+                                    Gore Content
+                                  </Typography>
+                                  <ResponsiveContainer width="100%" height="80%">
+                                    <BarChart
+                                      data={formatDataForChart(result.details.content_analysis.gore, 'classes')}
+                                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                                    >
+                                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                                      <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
+                                      <RechartsTooltip formatter={(value) => value.toFixed(3)} />
+                                      <Bar dataKey="value" fill="#e57373" />
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </Paper>
+                              </Grid>
+                            )}
+                          </Grid>
+                        </Box>
+                      )}
+                    </Box>
+                  </Paper>
+                </motion.div>
+              </Grid>
+            )}
           </Grid>
-          
-          {/* Image Upload Section */}
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Paper className="card" elevation={0}>
-                <div className="card-header">
-                  <Typography variant="h2">
-                    <Security sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} />
-                    Content Analysis
-                  </Typography>
-                </div>
-                
-                <div className="card-content">
-                  <form onSubmit={handleSubmit}>
-                    <Box className="form-group">
+        ) : (
+          // Admin Panel tab content
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <Paper className="card" elevation={0}>
+                  <div className="card-header">
+                    <Typography variant="h2">
+                      <VpnKey sx={{ mr: 1, fontSize: 28, verticalAlign: 'middle' }} /> 
+                      Admin Authentication
+                    </Typography>
+                  </div>
+                  
+                  <div className="card-content">
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        Enter your admin token to manage all API tokens
+                      </Typography>
                       <TextField
-                        label="API Token"
+                        label="Admin Token"
                         variant="outlined"
                         fullWidth
                         value={token}
                         onChange={handleTokenChange}
                         className="input-field"
                       />
+                      <Typography variant="body2" sx={{ mt: 2, color: "text.secondary" }}>
+                        Note: Only tokens with admin privileges can access token management features
+                      </Typography>
                     </Box>
-                    
-                    <Box className="file-input-wrapper">
-                      <input 
-                        type="file" 
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        ref={fileInputRef}
-                      />
-                      {!imagePreview ? (
-                        <>
-                          <CloudUpload className="icon" />
-                          <Typography>Drag & drop or click to upload an image</Typography>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-                            Supports JPG, PNG, GIF up to 10MB
-                          </Typography>
-                        </>
-                      ) : (
-                        <Box sx={{ position: 'relative', width: '100%' }}>
-                          <img 
-                            src={imagePreview} 
-                            alt="Preview" 
-                            className="image-preview" 
-                          />
-                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                            <IconButton onClick={handleFileDelete} color="error">
-                              <Delete />
-                            </IconButton>
-                            <Typography variant="body2" sx={{ ml: 1, alignSelf: 'center' }}>
-                              {file?.name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-                    
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      className="btn btn-primary"
-                      fullWidth
-                      sx={{ mt: 3 }}
-                      disabled={!file || !token}
-                      startIcon={<Upload />}
-                    >
-                      Analyze Image
-                    </Button>
-                  </form>
-                </div>
-              </Paper>
-            </motion.div>
-          </Grid>
-          
-          {/* Error Display */}
-          {error && (
-            <Grid item xs={12}>
-              <Alert 
-                severity="error" 
-                variant="filled"
-                sx={{ mb: 3 }}
-                onClose={() => setError(null)}
-              >
-                {error}
-              </Alert>
-            </Grid>
-          )}
-          
-          {/* Results Display */}
-          {result && (
-            <Grid item xs={12}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Paper className="card result-card" elevation={0}>
-                  <Box className="status-indicator">
-                    <div 
-                      className={`status-badge ${result.is_safe ? 'safe' : 'unsafe'}`}
-                    >
-                      {result.is_safe ? (
-                        <CheckCircle />
-                      ) : (
-                        <ErrorOutline />
-                      )}
-                      <span>{result.message}</span>
-                    </div>
-                  </Box>
-                  
-                  <Box className="result-details">
-                    <Tabs 
-                      value={activeTab} 
-                      onChange={handleTabChange}
-                      centered
-                    >
-                      <Tab label="Summary" />
-                      <Tab label="Detailed Analysis" />
-                      {result.details.content_analysis && <Tab label="Charts" />}
-                    </Tabs>
-                    
-                    {/* Summary Tab */}
-                    {activeTab === 0 && (
-                      <Box className="tab-content">
-                        {result.details.violations && result.details.violations.length > 0 ? (
-                          <Box sx={{ mb: 3 }}>
-                            <Typography variant="h6" gutterBottom>
-                              Content Violations
-                            </Typography>
-                            
-                            <Grid container spacing={1}>
-                              {result.details.violations.map((violation, index) => (
-                                <Grid item key={index}>
-                                  <Chip 
-                                    label={violation} 
-                                    color="error" 
-                                    variant="outlined" 
-                                  />
-                                </Grid>
-                              ))}
-                            </Grid>
-                          </Box>
-                        ) : (
-                          <Alert severity="success" sx={{ mb: 3 }}>
-                            No content violations detected
-                          </Alert>
-                        )}
-                        
-                        {/* Display top risk factors */}
-                        <Box sx={{ mt: 3 }}>
-                          <Typography variant="h6" gutterBottom>
-                            Top Risk Factors
-                          </Typography>
-                          
-                          {result.details.content_analysis && (
-                            <Box>
-                              {extractTopProbabilities(result.details.content_analysis)
-                                .slice(0, 5) // Take only top 5 highest probabilities
-                                .map((item, index) => (
-                                  <Box className="progress-container" key={index}>
-                                    <Box className="progress-label">
-                                      <span>
-                                        {item.category}: {item.feature}
-                                      </span>
-                                      <span>{item.value.toFixed(3)}</span>
-                                    </Box>
-                                    <Box className="progress-bar">
-                                      <Box 
-                                        className={`progress-fill ${getProgressColor(item.value)}`}
-                                        sx={{ width: `${Math.min(item.value * 100, 100)}%` }}
-                                      />
-                                    </Box>
-                                  </Box>
-                                ))}
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    )}
-                    
-                    {/* Detailed Analysis Tab */}
-                    {activeTab === 1 && (
-                      <Box className="tab-content">
-                        <Typography variant="body2" sx={{ mb: 2, fontFamily: 'monospace' }}>
-                          Request ID: {result.details.content_analysis.request?.id || 'N/A'}
-                        </Typography>
-                        
-                        {/* Add a nice formatting for the JSON data */}
-                        <Box 
-                          component="pre" 
-                          sx={{ 
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)', 
-                            p: 2, 
-                            borderRadius: 1, 
-                            overflow: 'auto', 
-                            fontSize: '0.875rem',
-                            maxHeight: '400px'
-                          }}
-                        >
-                          {JSON.stringify(result.details.content_analysis, null, 2)}
-                        </Box>
-                      </Box>
-                    )}
-                    
-                    {/* Charts Tab */}
-                    {activeTab === 2 && result.details.content_analysis && (
-                      <Box className="tab-content">
-                        <Grid container spacing={4}>
-                          {/* Nudity Chart */}
-                          {result.details.content_analysis.nudity && (
-                            <Grid item xs={12} md={6}>
-                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
-                                <Typography variant="h6" gutterBottom>
-                                  Nudity Analysis
-                                </Typography>
-                                <ResponsiveContainer width="100%" height="80%">
-                                  <BarChart
-                                    data={formatDataForChart(result.details.content_analysis, 'nudity')}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                                  >
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
-                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
-                                    <Bar dataKey="value" fill="#8884d8" />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </Paper>
-                            </Grid>
-                          )}
-                          
-                          {/* Weapon Chart */}
-                          {result.details.content_analysis.weapon && result.details.content_analysis.weapon.classes && (
-                            <Grid item xs={12} md={6}>
-                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
-                                <Typography variant="h6" gutterBottom>
-                                  Weapon Detection
-                                </Typography>
-                                <ResponsiveContainer width="100%" height="80%">
-                                  <BarChart
-                                    data={formatDataForChart(result.details.content_analysis.weapon, 'classes')}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                                  >
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
-                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
-                                    <Bar dataKey="value" fill="#82ca9d" />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </Paper>
-                            </Grid>
-                          )}
-                          
-                          {/* Offensive Content Chart */}
-                          {result.details.content_analysis.offensive && (
-                            <Grid item xs={12} md={6}>
-                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
-                                <Typography variant="h6" gutterBottom>
-                                  Offensive Content
-                                </Typography>
-                                <ResponsiveContainer width="100%" height="80%">
-                                  <BarChart
-                                    data={formatDataForChart(result.details.content_analysis, 'offensive')}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                                  >
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
-                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
-                                    <Bar dataKey="value" fill="#ff8042" />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </Paper>
-                            </Grid>
-                          )}
-                          
-                          {/* Gore Content Chart */}
-                          {result.details.content_analysis.gore && result.details.content_analysis.gore.classes && (
-                            <Grid item xs={12} md={6}>
-                              <Paper sx={{ p: 2, mb: 2, height: 300 }} elevation={1}>
-                                <Typography variant="h6" gutterBottom>
-                                  Gore Content
-                                </Typography>
-                                <ResponsiveContainer width="100%" height="80%">
-                                  <BarChart
-                                    data={formatDataForChart(result.details.content_analysis.gore, 'classes')}
-                                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                                  >
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                                    <YAxis tickFormatter={(value) => value.toFixed(2)} domain={[0, 'dataMax + 0.1']} />
-                                    <RechartsTooltip formatter={(value) => value.toFixed(3)} />
-                                    <Bar dataKey="value" fill="#e57373" />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </Paper>
-                            </Grid>
-                          )}
-                        </Grid>
-                      </Box>
-                    )}
-                  </Box>
+                  </div>
                 </Paper>
-              </motion.div>
+              </Grid>
+
+              <Grid item xs={12} md={8}>
+                {/* Admin Panel Tabs */}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                  <Tabs 
+                    value={adminTab} 
+                    onChange={handleAdminTabChange}
+                    aria-label="admin panel tabs"
+                  >
+                    <Tab 
+                      icon={<AdminPanelSettings />} 
+                      label="TOKEN MANAGEMENT" 
+                      id="tab-token-management"
+                    />
+                    <Tab 
+                      icon={<History />} 
+                      label="USAGE STATISTICS" 
+                      id="tab-usage-stats"
+                    />
+                  </Tabs>
+                </Box>
+                
+                {/* Show token management or usage stats based on the active admin tab */}
+                {adminTab === 0 ? (
+                  <AdminPanel token={token} />
+                ) : (
+                  <UsageStats token={token} />
+                )}
+              </Grid>
             </Grid>
-          )}
-        </Grid>
+          </motion.div>
+        )}
       </Container>
       
       <Snackbar
