@@ -52,7 +52,7 @@ mongod
 
 2. Run the FastAPI application:
 ```bash
-uvicorn app.main:app --reload --port 7000
+uvicorn app.main:app --reload --port 7001
 ```
 
 ### Docker Deployment
@@ -65,8 +65,8 @@ docker-compose up --build
 ## API Documentation
 
 Once the application is running, visit:
-- Swagger UI: http://localhost:7000/docs
-- ReDoc: http://localhost:7000/redoc
+- Swagger UI: http://localhost:7001/docs
+- ReDoc: http://localhost:7001/redoc
 
 ## Testing
 

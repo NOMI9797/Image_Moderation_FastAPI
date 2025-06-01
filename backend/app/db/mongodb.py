@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "image_moderation")
+MONGODB_URI = os.getenv("MONGODB_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 class MongoDB:
     client: AsyncIOMotorClient = None
