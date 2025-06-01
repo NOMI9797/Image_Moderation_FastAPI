@@ -9,6 +9,7 @@ A FastAPI-based API for moderating images, detecting harmful content, and managi
 - MongoDB integration for token and usage tracking
 - Docker containerization
 - Simple frontend interface
+- CI/CD with GitHub Actions
 
 ## Prerequisites
 
@@ -32,6 +33,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies:
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -52,7 +54,8 @@ mongod
 
 2. Run the FastAPI application:
 ```bash
-uvicorn app.main:app --reload --port 7001
+cd backend
+uvicorn app.main:app --reload --port 7000
 ```
 
 ### Docker Deployment
@@ -72,28 +75,51 @@ Once the application is running, visit:
 
 Run tests with pytest:
 ```bash
+cd backend
 pytest
 ```
+
+The project includes the following tests:
+
+- **Authentication Tests**: Tests for token validation, admin privileges, and authentication middleware.
+- **Image Moderation Tests**: Tests for the image moderation service, including detection of safe and unsafe content.
 
 ## Project Structure
 
 ```
 .
-├── app/
-│   ├── api/            # API routes
-│   ├── core/           # Core functionality
-│   ├── db/             # Database configuration
-│   ├── models/         # Database models
-│   ├── schemas/        # Pydantic schemas
-│   ├── services/       # Business logic
-│   └── utils/          # Utility functions
-├── tests/              # Test files
-├── frontend/           # Frontend application
-├── Dockerfile
+├── backend/
+│   ├── app/
+│   │   ├── api/            # API routes
+│   │   ├── core/           # Core functionality
+│   │   ├── db/             # Database configuration
+│   │   ├── models/         # Database models
+│   │   ├── schemas/        # Pydantic schemas
+│   │   ├── services/       # Business logic
+│   │   └── main.py         # FastAPI application entry point
+|  ├── tests/               # test cases files
+│  ├── Dockerfile
+│  └── requirements.txt
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── Dockerfile
+│   └── package.json
+├── .github/
+│   └── workflows/          # GitHub Actions workflows
+│       └── code-quality.yml # Code quality checks for frontend and backend
 ├── docker-compose.yml
-└── requirements.txt
+└── README.md
 ```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration:
+
+- **Code Quality**: Runs ESLint on frontend code and flake8 on backend code to ensure code quality standards are met.
+
+GitHub workflows are triggered on push to main/master branches and on pull requests.
 
 ## License
 
-MIT 
+MIT
