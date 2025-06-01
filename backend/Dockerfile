@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 7000
 
 # Update uvicorn command to allow external access
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7001", "--reload"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7000", "--reload"] 
